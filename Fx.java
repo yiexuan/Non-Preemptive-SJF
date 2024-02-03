@@ -236,6 +236,7 @@ public class Fx extends Application {
             calculationArea.setText(calculationResult);
             // double calHeight = 24;
             // calculationArea.setPrefHeight(5 * calHeight);
+            errorLabel.setText("");
     }
 
     private boolean isFirstProcess = true;
