@@ -1,5 +1,4 @@
 import javafx.application.Application;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -12,7 +11,6 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
@@ -28,11 +26,12 @@ public class Fx extends Application {
     private VBox ganttChartArea;
     private HBox ganttChartBox;
     private VBox root; 
+    private List<VBox> ganttBoxes = new ArrayList<>();
 
-    private int totalTurnaroundTime;
-    private double averageTurnaroundTime;
-    private int totalWaitingTime;
-    private double averageWaitingTime;
+    // private int totalTurnaroundTime;
+    // private double averageTurnaroundTime;
+    // private int totalWaitingTime;
+    // private double averageWaitingTime;
 
     public static void main(String[] args) {
         launch(args);
@@ -65,8 +64,9 @@ public class Fx extends Application {
         root = new VBox(10);
         root.setPadding(new Insets(10));
         ganttChartArea = new VBox();
-        ganttChartArea.setSpacing(5); // Adjust the spacing as needed
-        ganttChartArea.setStyle("-fx-background-color: #ffffff;"); // Optional background color
+        ganttChartArea.setSpacing(5);
+        ganttChartArea.setStyle("-fx-background-color: #ffffff;");
+
         // UI components
         numProcessesField = new TextField();
         errorLabel = new Label();
@@ -75,8 +75,6 @@ public class Fx extends Application {
         calculationArea = new TextArea();
         calculationArea.setEditable(false);
         calculationArea.setWrapText(true);
-        // ganttChartArea = new TextArea();
-        // ganttChartArea.setEditable(false);
         ganttChartBox = new HBox();
 
         // Table columns
@@ -88,16 +86,15 @@ public class Fx extends Application {
         burstTimeCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().burstTime)));
         TableColumn<Process, String> priorityCol = new TableColumn<>("Priority");
         priorityCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().priority)));
-        TableColumn<Process, String> waitingTimeCol = new TableColumn<>("Waiting Time");
-        waitingTimeCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().waitingTime)));
         TableColumn<Process, String> turnaroundTimeCol = new TableColumn<>("Turnaround Time");
         turnaroundTimeCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().turnaroundTime)));
+        TableColumn<Process, String> waitingTimeCol = new TableColumn<>("Waiting Time");
+        waitingTimeCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().waitingTime)));
 
         processTable.getColumns().addAll(processIdCol, arrivalTimeCol, burstTimeCol,priorityCol, waitingTimeCol, turnaroundTimeCol);
         processTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         // Layout
-        //VBox root = new VBox(10);
         root.setPadding(new Insets(10));
         root.getChildren().addAll(
                 new Label("Enter the number of processes (3-10):"),
@@ -111,12 +108,11 @@ public class Fx extends Application {
                 ganttChartArea
         );
 
-        // Event handling
+        // Handle number of process
         numProcessesField.textProperty().addListener((observable, oldValue, newValue) -> {
             // Clear previous error message
             errorLabel.setText("");
             if (!newValue.matches("\\d*")) {
-                // Display error message if non-numeric characters are entered
                 errorLabel.setText("Please enter a valid number.");
                 errorLabel.setTextFill(Color.RED);
                 return;
@@ -124,7 +120,6 @@ public class Fx extends Application {
 
             int numProcesses = Integer.parseInt(newValue);
             if (numProcesses < 3 || numProcesses > 10) {
-                // Display error message if the number is out of range
                 errorLabel.setText("The number of processes must be within the range of 3 - 10");
                 errorLabel.setTextFill(Color.RED);
             }
@@ -137,10 +132,9 @@ public class Fx extends Application {
         primaryStage.show();
     }
 
-    private List<Process> getProcessesFromUser() {
+    private List<Process> getNumberOfProcesses() {
         List<Process> processes = new ArrayList<>();
 
-        // Validate input until a valid number of processes is entered
         while (true) {
             String input = numProcessesField.getText();
             if (!input.matches("\\d*")) {
@@ -158,31 +152,40 @@ public class Fx extends Application {
 
             // If the input is valid, clear the error label and proceed
             errorLabel.setText("");
-            return getProcessesFromUser(numProcesses);
+            return getProcessesDetails(numProcesses);
         }
     }
-    // Helper method to get process details from the user
-    private List<Process> getProcessesFromUser(int numProcesses) {
+
+    // Get process details from the user
+    private List<Process> getProcessesDetails(int numProcesses) {
         List<Process> processes = new ArrayList<>();
 
         for (int i = 0; i < numProcesses; i++) {
-            int arrivalTime = getIntFromUser("Enter Arrival Time for Process " + i + ":");
-            int burstTime = getIntFromUser("Enter Burst Time for Process " + i + ":");
-            int priority = getIntFromUser("Enter Priority for Process " + i + ":");
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setContentText("Enter Arrival Time, Burst Time, and Priority for Process " + i + " (separated by commas):");
+            dialog.setHeaderText(null);
+            dialog.showAndWait();
+
+            String userInput = dialog.getResult();      
+            String[] inputs = userInput.split(",");
+
+            int arrivalTime = Integer.parseInt(inputs[0]);
+            int burstTime = Integer.parseInt(inputs[1]);
+            int priority = Integer.parseInt(inputs[2]);
 
             processes.add(new Process(i, arrivalTime, burstTime, priority));
         }
         return processes;
     }
 
-    // Helper method to get an integer input from the user
-    private int getIntFromUser(String prompt) {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setContentText(prompt);
-        dialog.setHeaderText(null);
-        dialog.showAndWait();
-        return Integer.parseInt(dialog.getResult());
-    }
+    // // Helper method to get an integer input from the user
+    // private int getIntFromUser(String prompt) {
+    //     TextInputDialog dialog = new TextInputDialog();
+    //     dialog.setContentText(prompt);
+    //     dialog.setHeaderText(null);
+    //     dialog.showAndWait();
+    //     return Integer.parseInt(dialog.getResult());
+    // }
 
     // public String toString() {
     //     return String.format("Process %d: Arrival Time=%d, Burst Time=%d, Waiting Time=%d, Turnaround Time=%d\n",
@@ -191,17 +194,15 @@ public class Fx extends Application {
     
 
     private void nonPreemptiveSJF(){
-        List<Process> processes = getProcessesFromUser();
+        List<Process> processes = getNumberOfProcesses();
         int numProcesses = Integer.parseInt(numProcessesField.getText());
 
-              // Check if the number of processes is within the valid range
+        // Check if the number of processes is within the valid range
         if (numProcesses < 3 || numProcesses > 10) {
-            // Display an error message or take appropriate action
             errorLabel.setText("Please enter a valid number of processes (3-10).");
             errorLabel.setTextFill(Color.RED);
             return;
         }
-
             // Perform scheduling and display the result
             List<Process> processResult = new ArrayList<>();
             int currentTime = 0;
@@ -216,8 +217,9 @@ public class Fx extends Application {
                 processResult.add(selectedProcess);
                 currentTime += selectedProcess.burstTime;
                 selectedProcess.remainingBurstTime = 0;
-                drawGanttBox(selectedProcess.i, currentTime);
+                drawGanttChart(selectedProcess.i, currentTime);
             }
+            ganttChartBox.getChildren().addAll(ganttBoxes);
 
             // Sort the processes based on their process IDs
             List<Process> sortedProcess = processResult;
@@ -234,56 +236,43 @@ public class Fx extends Application {
 
             String calculationResult = calculateTotal(processes);
             calculationArea.setText(calculationResult);
-            // double calHeight = 24;
-            // calculationArea.setPrefHeight(5 * calHeight);
+
             errorLabel.setText("");
     }
 
     private boolean isFirstProcess = true;
-
-    private void drawGanttBox(int processId, int currentTime) {
-        // Create a rectangle for the Gantt chart box
+    private void drawGanttChart(int processId, int currentTime) {
         Rectangle ganttBox = new Rectangle(30, 20);
         ganttBox.setStyle("-fx-fill: lightblue; -fx-stroke: black;");
     
-        // Set the position of the rectangle in the Gantt chart
-        //ganttBox.setTranslateX(currentTime * 30); // Adjust the width as needed
-    
-        // Create a label to display the process ID
         Label processLabel = new Label("P" + processId);
-        processLabel.setMinWidth(28);
+        processLabel.setMinWidth(30);
         processLabel.setAlignment(Pos.CENTER);
         processLabel.setTranslateY(-20);
 
-        StackPane stack = new StackPane();
-        stack.getChildren().addAll(ganttBox, processLabel);
+        // StackPane stack = new StackPane();
+        // stack.getChildren().addAll(ganttBox);
 
-        Label zeroLabel = new Label("0");
-        zeroLabel.setMinWidth(15);
-        zeroLabel.setAlignment(Pos.CENTER_LEFT);
-        zeroLabel.setStyle("-fx-text-fill: black;");
-        zeroLabel.setTranslateY(-20);
+        // Label zeroLabel = new Label("0");
+        // zeroLabel.setMinWidth(15);
+        // zeroLabel.setAlignment(Pos.CENTER_LEFT);
+        // zeroLabel.setStyle("-fx-text-fill: black;");
+        // zeroLabel.setTranslateY(-20);
 
         Label timeLabel = new Label(isFirstProcess ? "0\t" + String.valueOf(currentTime) : String.valueOf(currentTime));
-        timeLabel.setMinWidth(30);
+        timeLabel.setMinWidth(28);
         timeLabel.setAlignment(Pos.CENTER_RIGHT);
+        timeLabel.setTranslateX(5);
         timeLabel.setTranslateY(-20);
-
-        HBox timeBox = new HBox(zeroLabel, timeLabel);
-        timeBox.setAlignment(Pos.CENTER);
-
-        VBox cell = isFirstProcess ? new VBox(zeroLabel, stack) : new VBox(stack, timeLabel);
-        cell.setAlignment(Pos.CENTER);
 
         VBox ganttBoxWithLabel = new VBox(ganttBox, processLabel, timeLabel);
         ganttBoxWithLabel.setAlignment(Pos.CENTER);
-        // Add the rectangle and label to the Gantt chart box
-        ganttChartBox.getChildren().add(ganttBoxWithLabel);
+        ganttBoxes.add(ganttBoxWithLabel);
 
         if (isFirstProcess) {
+            ganttBoxWithLabel.setTranslateX(3);
             isFirstProcess = false;
         }
-
     }
 
     public static Process findShortestBurstTime(List<Process> processes, int currentTime) {
