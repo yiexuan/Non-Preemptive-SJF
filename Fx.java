@@ -4,10 +4,13 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
@@ -19,9 +22,10 @@ import java.util.List;
 
 public class Fx extends Application {
     private TextField numProcessesField;
+    private Label errorLabel;
     private TableView<Process> processTable;
     private static TextArea calculationArea;
-    private TextArea ganttChartArea;
+    private VBox ganttChartArea;
     private HBox ganttChartBox;
     private VBox root; 
 
@@ -60,15 +64,19 @@ public class Fx extends Application {
 
         root = new VBox(10);
         root.setPadding(new Insets(10));
+        ganttChartArea = new VBox();
+        ganttChartArea.setSpacing(5); // Adjust the spacing as needed
+        ganttChartArea.setStyle("-fx-background-color: #ffffff;"); // Optional background color
         // UI components
         numProcessesField = new TextField();
+        errorLabel = new Label();
         Button submitButton = new Button("Generate");
         processTable = new TableView<>();
         calculationArea = new TextArea();
         calculationArea.setEditable(false);
         calculationArea.setWrapText(true);
-        ganttChartArea = new TextArea();
-        ganttChartArea.setEditable(false);
+        // ganttChartArea = new TextArea();
+        // ganttChartArea.setEditable(false);
         ganttChartBox = new HBox();
 
         // Table columns
@@ -94,6 +102,7 @@ public class Fx extends Application {
         root.getChildren().addAll(
                 new Label("Enter the number of processes (3-10):"),
                 numProcessesField,
+                errorLabel,
                 submitButton,
                 processTable,
                 new Label("Calculation: "),
@@ -103,6 +112,24 @@ public class Fx extends Application {
         );
 
         // Event handling
+        numProcessesField.textProperty().addListener((observable, oldValue, newValue) -> {
+            // Clear previous error message
+            errorLabel.setText("");
+            if (!newValue.matches("\\d*")) {
+                // Display error message if non-numeric characters are entered
+                errorLabel.setText("Please enter a valid number.");
+                errorLabel.setTextFill(Color.RED);
+                return;
+            }
+
+            int numProcesses = Integer.parseInt(newValue);
+            if (numProcesses < 3 || numProcesses > 10) {
+                // Display error message if the number is out of range
+                errorLabel.setText("The number of processes must be within the range of 3 - 10");
+                errorLabel.setTextFill(Color.RED);
+            }
+        });
+
         submitButton.setOnAction(e -> nonPreemptiveSJF());
 
         Scene scene = new Scene(root, 600, 600);
@@ -110,9 +137,34 @@ public class Fx extends Application {
         primaryStage.show();
     }
 
+    private List<Process> getProcessesFromUser() {
+        List<Process> processes = new ArrayList<>();
+
+        // Validate input until a valid number of processes is entered
+        while (true) {
+            String input = numProcessesField.getText();
+            if (!input.matches("\\d*")) {
+                errorLabel.setText("Please enter a valid number.");
+                errorLabel.setTextFill(Color.RED);
+                return processes;
+            }
+
+            int numProcesses = Integer.parseInt(input);
+            if (numProcesses < 3 || numProcesses > 10) {
+                errorLabel.setText("The number of processes must be within the range of 3 - 10");
+                errorLabel.setTextFill(Color.RED);
+                return processes;
+            }
+
+            // If the input is valid, clear the error label and proceed
+            errorLabel.setText("");
+            return getProcessesFromUser(numProcesses);
+        }
+    }
     // Helper method to get process details from the user
     private List<Process> getProcessesFromUser(int numProcesses) {
         List<Process> processes = new ArrayList<>();
+
         for (int i = 0; i < numProcesses; i++) {
             int arrivalTime = getIntFromUser("Enter Arrival Time for Process " + i + ":");
             int burstTime = getIntFromUser("Enter Burst Time for Process " + i + ":");
@@ -139,8 +191,16 @@ public class Fx extends Application {
     
 
     private void nonPreemptiveSJF(){
+        List<Process> processes = getProcessesFromUser();
         int numProcesses = Integer.parseInt(numProcessesField.getText());
-            List<Process> processes = getProcessesFromUser(numProcesses);
+
+              // Check if the number of processes is within the valid range
+        if (numProcesses < 3 || numProcesses > 10) {
+            // Display an error message or take appropriate action
+            errorLabel.setText("Please enter a valid number of processes (3-10).");
+            errorLabel.setTextFill(Color.RED);
+            return;
+        }
 
             // Perform scheduling and display the result
             List<Process> processResult = new ArrayList<>();
@@ -166,34 +226,11 @@ public class Fx extends Application {
             // Display result in TableView
             ObservableList<Process> processObservableList = FXCollections.observableArrayList(sortedProcess);
             processTable.setItems(processObservableList);
-            //processTable.setMaxHeight((numProcesses + 1) * 25);
-
-            //Set the maximum height to display a certain number of rows
-            // int maxVisibleRows = 9; // Adjust this value based on the number of rows you want to display
-            // double rowHeight = 24; // Adjust this value based on your preference
-            // double maxTableHeight = rowHeight * maxVisibleRows;
-
-            //processTable.setMaxHeight(maxTableHeight);
+            processTable.setMaxHeight((numProcesses + 1) * 25);
 
             // Display Gantt Chart in TextArea
-            // StringBuilder ganttChart = new StringBuilder("__________________________________\n");
-            // for (Process p : processResult) {
-            //     ganttChart.append("|   P").append(p.i).append("   ");
-            // }
-            // ganttChart.append("|\n");
-            // for (Process p : processResult) {
-            //     ganttChart.append("-------");
-            // }
-            // ganttChart.append("|\n");
-
-            // int time = 0;
-            // for (Process p : processResult) {
-            //     ganttChart.append(time).append("        ");
-            //     time += p.burstTime;
-            // }
-
-            // ganttChartArea.setText(ganttChart.toString());
-            root.getChildren().add(ganttChartBox);
+            ganttChartArea.getChildren().clear(); // Clear previous content
+            ganttChartArea.getChildren().add(ganttChartBox);
 
             String calculationResult = calculateTotal(processes);
             calculationArea.setText(calculationResult);
@@ -201,20 +238,51 @@ public class Fx extends Application {
             // calculationArea.setPrefHeight(5 * calHeight);
     }
 
+    private boolean isFirstProcess = true;
+
     private void drawGanttBox(int processId, int currentTime) {
         // Create a rectangle for the Gantt chart box
         Rectangle ganttBox = new Rectangle(30, 20);
         ganttBox.setStyle("-fx-fill: lightblue; -fx-stroke: black;");
-
+    
         // Set the position of the rectangle in the Gantt chart
-        ganttBox.setTranslateX(currentTime * 30); // Adjust the width as needed
-
+        //ganttBox.setTranslateX(currentTime * 30); // Adjust the width as needed
+    
         // Create a label to display the process ID
         Label processLabel = new Label("P" + processId);
-        processLabel.setTranslateX(currentTime * 30 + 10); // Adjust the width and label position as needed
+        processLabel.setMinWidth(28);
+        processLabel.setAlignment(Pos.CENTER);
+        processLabel.setTranslateY(-20);
 
+        StackPane stack = new StackPane();
+        stack.getChildren().addAll(ganttBox, processLabel);
+
+        Label zeroLabel = new Label("0");
+        zeroLabel.setMinWidth(15);
+        zeroLabel.setAlignment(Pos.CENTER_LEFT);
+        zeroLabel.setStyle("-fx-text-fill: black;");
+        zeroLabel.setTranslateY(-20);
+
+        Label timeLabel = new Label(isFirstProcess ? "0\t" + String.valueOf(currentTime) : String.valueOf(currentTime));
+        timeLabel.setMinWidth(30);
+        timeLabel.setAlignment(Pos.CENTER_RIGHT);
+        timeLabel.setTranslateY(-20);
+
+        HBox timeBox = new HBox(zeroLabel, timeLabel);
+        timeBox.setAlignment(Pos.CENTER);
+
+        VBox cell = isFirstProcess ? new VBox(zeroLabel, stack) : new VBox(stack, timeLabel);
+        cell.setAlignment(Pos.CENTER);
+
+        VBox ganttBoxWithLabel = new VBox(ganttBox, processLabel, timeLabel);
+        ganttBoxWithLabel.setAlignment(Pos.CENTER);
         // Add the rectangle and label to the Gantt chart box
-        ganttChartBox.getChildren().addAll(ganttBox, processLabel);
+        ganttChartBox.getChildren().add(ganttBoxWithLabel);
+
+        if (isFirstProcess) {
+            isFirstProcess = false;
+        }
+
     }
 
     public static Process findShortestBurstTime(List<Process> processes, int currentTime) {
