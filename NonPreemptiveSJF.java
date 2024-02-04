@@ -7,7 +7,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.StackPane;
+//import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class Fx extends Application {
+public class NonPreemptiveSJF extends Application {
     private TextField numProcessesField;
     private Label errorLabel;
     private TableView<Process> processTable;
@@ -42,6 +42,7 @@ public class Fx extends Application {
         int arrivalTime;
         int burstTime;
         int priority;
+        int finishingTime;
         int turnaroundTime;
         int waitingTime;
         int remainingBurstTime;
@@ -51,6 +52,7 @@ public class Fx extends Application {
             this.arrivalTime = arrivalTime;
             this.burstTime = burstTime;
             this.priority = priority;
+            this.finishingTime = 0;
             this.turnaroundTime = 0;
             this.waitingTime = 0;
             this.remainingBurstTime = burstTime;
@@ -86,12 +88,14 @@ public class Fx extends Application {
         burstTimeCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().burstTime)));
         TableColumn<Process, String> priorityCol = new TableColumn<>("Priority");
         priorityCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().priority)));
+        TableColumn<Process, String> finishingTimeCol = new TableColumn<>("Finishing Time");
+        finishingTimeCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().finishingTime)));
         TableColumn<Process, String> turnaroundTimeCol = new TableColumn<>("Turnaround Time");
         turnaroundTimeCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().turnaroundTime)));
         TableColumn<Process, String> waitingTimeCol = new TableColumn<>("Waiting Time");
         waitingTimeCol.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().waitingTime)));
 
-        processTable.getColumns().addAll(processIdCol, arrivalTimeCol, burstTimeCol,priorityCol, waitingTimeCol, turnaroundTimeCol);
+        processTable.getColumns().addAll(processIdCol, arrivalTimeCol, burstTimeCol, priorityCol, finishingTimeCol, turnaroundTimeCol, waitingTimeCol);
         processTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         // Layout
@@ -299,6 +303,7 @@ public class Fx extends Application {
         int turnaroundTime = finishingTime - arrivalTime;
         int waitingTime = turnaroundTime - burstTime;
 
+        process.finishingTime = finishingTime;
         process.turnaroundTime = turnaroundTime;
         process.waitingTime = waitingTime;
     }
